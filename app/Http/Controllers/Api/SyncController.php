@@ -35,8 +35,8 @@ class SyncController extends Controller
             return response()->json(['message' => 'Invalid or already used pairing code.'], 404);
         }
 
-        // Generate a token for the user associated with this device
-        $token = $device->user->createToken($device->name . ' Mobile')->plainTextToken;
+        // Generate a token for the user, tagging it with the device ID for tracking
+        $token = $device->user->createToken('Device:' . $device->id)->plainTextToken;
 
         // Clear the pairing code so it can't be used again
         $device->update(['pairing_code' => null]);
@@ -55,13 +55,6 @@ class SyncController extends Controller
     {
         $user = $request->user();
         $contacts = $request->input('contacts', []);
-
-        \Log::info('Incoming sync request', [
-            'user_id' => $user->id,
-            'contacts_count' => count($contacts),
-            'first_contact' => !empty($contacts) ? $contacts[0] : null,
-        ]);
-
 
         $syncedCount = 0;
 
@@ -100,9 +93,12 @@ class SyncController extends Controller
             }
         }
 
-        // Update last sync for devices?
-        // We'd need to know which device called this.
-        // Sanctum's currentAccessToken() has a name or we can hit the Device manually if we tracked it.
+        // Update last sync for the specific device that performed the sync
+        $token = $request->user()->currentAccessToken();
+        if ($token && str_starts_with($token->name, 'Device:')) {
+            $deviceId = str_replace('Device:', '', $token->name);
+            Device::where('id', $deviceId)->update(['last_sync_at' => now()]);
+        }
         
         return response()->json([
             'count' => $syncedCount,
