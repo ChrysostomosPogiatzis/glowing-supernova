@@ -13,4 +13,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/sync', [SyncController::class, 'sync']);
+    Route::post('/lookup', [SyncController::class, 'lookup']);
 });

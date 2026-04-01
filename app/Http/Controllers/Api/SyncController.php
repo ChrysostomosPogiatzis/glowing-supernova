@@ -107,4 +107,32 @@ class SyncController extends Controller
             'platform_contacts' => Customer::with(['company', 'outlet', 'user'])->get(),
         ]);
     }
+
+    /**
+     * Look up a customer by phone number.
+     */
+    public function lookup(Request $request)
+    {
+        $validated = $request->validate([
+            'mobile' => 'required|string',
+        ]);
+
+        $phoneNumber = trim($validated['mobile']);
+
+        $customer = Customer::where('mobile_number', $phoneNumber)
+            ->with(['company', 'outlet'])
+            ->first();
+
+        if (!$customer) {
+            return response()->json(['message' => 'Not found'], 404);
+        }
+
+        return response()->json([
+            'name' => $customer->name,
+            'surname' => $customer->surname,
+            'full_name' => $customer->name . ' ' . $customer->surname,
+            'company' => $customer->company?->name,
+            'outlet' => $customer->outlet?->name,
+        ]);
+    }
 }
