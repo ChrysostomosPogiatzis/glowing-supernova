@@ -48,22 +48,41 @@ class SyncController extends Controller
         $user = $request->user();
         $contacts = $request->input('contacts', []);
 
+        \Log::info('Incoming sync request', [
+            'user_id' => $user->id,
+            'contacts_count' => count($contacts),
+            'first_contact' => !empty($contacts) ? $contacts[0] : null,
+        ]);
+
+
         $syncedCount = 0;
 
         foreach ($contacts as $contact) {
-            // Very basic matching logic: check by email or mobile
-            $customer = Customer::where('mobile_number', $contact['mobile'])
-                ->orWhere('email', $contact['email'] ?? null)
-                ->first();
+            // Validation: skip if mobile number is missing
+            if (empty($contact['mobile'])) {
+                continue;
+            }
 
-            if (!$customer) {
-                Customer::create([
-                    'name' => $contact['name'] ?? 'Mobile',
-                    'surname' => $contact['surname'] ?? 'Contact',
-                    'mobile_number' => $contact['mobile'],
-                    'email' => $contact['email'] ?? null,
+            try {
+                // Very basic matching logic: check by email or mobile
+                $customer = Customer::where('mobile_number', $contact['mobile'])
+                    ->orWhere('email', $contact['email'] ?? null)
+                    ->first();
+
+                if (!$customer) {
+                    Customer::create([
+                        'name' => $contact['name'] ?? 'Mobile',
+                        'surname' => $contact['surname'] ?? 'Contact',
+                        'mobile_number' => $contact['mobile'],
+                        'email' => $contact['email'] ?? null,
+                    ]);
+                    $syncedCount++;
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to sync contact', [
+                    'contact' => $contact,
+                    'error' => $e->getMessage()
                 ]);
-                $syncedCount++;
             }
         }
 
