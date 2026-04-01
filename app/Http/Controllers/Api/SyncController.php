@@ -78,6 +78,7 @@ class SyncController extends Controller
 
                 if (!$customer) {
                     Customer::create([
+                        'user_id' => $user->id,
                         'name' => $contact['name'] ?? 'Mobile',
                         'surname' => $contact['surname'] ?? 'Contact',
                         'mobile_number' => $contact['mobile'],
@@ -103,7 +104,7 @@ class SyncController extends Controller
         return response()->json([
             'count' => $syncedCount,
             'message' => 'Contacts synced successfully.',
-            'platform_contacts' => Customer::with(['company', 'outlet'])->get(),
+            'platform_contacts' => Customer::with(['company', 'outlet', 'user'])->get(),
         ]);
     }
 }

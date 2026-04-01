@@ -15,7 +15,7 @@ class CustomerController extends Controller
     {
         $search = $request->query('search');
 
-        $customers = Customer::with(['company', 'outlet'])
+        $customers = Customer::with(['company', 'outlet', 'user'])
             ->when($search, function ($query, $search) {
                 $query->where('name', 'like', "%{$search}%")
                     ->orWhere('surname', 'like', "%{$search}%")
@@ -50,6 +50,7 @@ class CustomerController extends Controller
             'outlet_id' => 'nullable|exists:outlets,id',
         ]);
 
+        $validated['user_id'] = auth()->id();
         Customer::create($validated);
 
         return redirect()->back();

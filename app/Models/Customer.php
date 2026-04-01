@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
-    protected $fillable = ['name', 'surname', 'mobile_number', 'email', 'company_id', 'outlet_id'];
+    protected $fillable = ['name', 'surname', 'mobile_number', 'email', 'company_id', 'outlet_id', 'user_id'];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 
     public function company()
     {
