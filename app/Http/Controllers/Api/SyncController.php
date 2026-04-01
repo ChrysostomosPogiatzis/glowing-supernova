@@ -16,15 +16,23 @@ class SyncController extends Controller
      */
     public function pair(Request $request)
     {
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'code' => 'required|string',
             'device_name' => 'nullable|string',
         ]);
+        
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
+        $validated = $validator->validated();
         $device = Device::where('pairing_code', $validated['code'])->first();
 
         if (!$device) {
-            return response()->json(['message' => 'Invalid pairing code.'], 404);
+            return response()->json(['message' => 'Invalid or already used pairing code.'], 404);
         }
 
         // Generate a token for the user associated with this device
@@ -58,16 +66,22 @@ class SyncController extends Controller
         $syncedCount = 0;
 
         foreach ($contacts as $contact) {
+            $contact['mobile'] = trim($contact['mobile']);
+
             // Validation: skip if mobile number is missing
             if (empty($contact['mobile'])) {
                 continue;
             }
 
             try {
-                // Very basic matching logic: check by email or mobile
-                $customer = Customer::where('mobile_number', $contact['mobile'])
-                    ->orWhere('email', $contact['email'] ?? null)
-                    ->first();
+                // Better matching logic: only check email if it's provided
+                $query = Customer::where('mobile_number', $contact['mobile']);
+                
+                if (!empty($contact['email'])) {
+                    $query->orWhere('email', $contact['email']);
+                }
+                
+                $customer = $query->first();
 
                 if (!$customer) {
                     Customer::create([
